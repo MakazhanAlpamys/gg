@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Здесь укажите ID пользователя, который будет администратором
-DEFAULT_ADMIN_ID = "2080214901"  # Замените на реальный Telegram ID администратора
+DEFAULT_ADMIN_ID = "858908158"  # Замените на реальный Telegram ID администратора
 
 # Configure logging
 logging.basicConfig(
