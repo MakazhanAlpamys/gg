@@ -324,7 +324,11 @@ def main():
         logger.error("TELEGRAM_BOT_TOKEN not found in environment variables")
         return
     
-    updater = Updater(token)
+    # Создаём persistence для сохранения данных
+    persistence = PicklePersistence(filename=os.path.join(DATA_DIR, 'bot_data.pickle'))
+    
+    # Инициализируем бота с использованием persistence
+    updater = Updater(token, persistence=persistence)
     dispatcher = updater.dispatcher
     
     # Add conversation handler for users
@@ -339,7 +343,9 @@ def main():
             ADMIN_REMOVE_ADDRESS: [CallbackQueryHandler(remove_address_callback, pattern=r'^remove_')],
             ADMIN_UPDATE_PRODUCTS: [MessageHandler(Filters.text & ~Filters.command, update_products)]
         },
-        fallbacks=[CommandHandler('cancel', cancel)]
+        fallbacks=[CommandHandler('cancel', cancel)],
+        name='main_conversation',
+        persistent=True
     )
     
     dispatcher.add_handler(conv_handler)
@@ -347,12 +353,24 @@ def main():
     # Add error handler
     dispatcher.add_error_handler(error_handler)
     
-    # Start the Bot
-    updater.start_polling(allowed_updates=['message', 'callback_query', 'my_chat_member'])
-    logger.info("Bot started")
+    # Определяем PORT для Scalingo (или используем значение по умолчанию)
+    PORT = int(os.environ.get("PORT", "8080"))
     
-    # Run the bot until you press Ctrl-C
-    updater.idle()
+    # Проверяем, в каком режиме запускать бота
+    if os.environ.get('SCALINGO_APP_NAME'):
+        # Запускаем webhook для Scalingo
+        updater.start_webhook(listen="0.0.0.0",
+                              port=PORT,
+                              url_path=token,
+                              webhook_url=f"https://{os.environ.get('SCALINGO_APP_NAME')}.osc-fr1.scalingo.io/{token}")
+        logger.info(f"Bot started in webhook mode on port {PORT}")
+    else:
+        # Обычный режим polling для локальной разработки
+        updater.start_polling(allowed_updates=['message', 'callback_query', 'my_chat_member'])
+        logger.info("Bot started in polling mode")
+        
+        # Run the bot until you press Ctrl-C (только для локальной разработки)
+        updater.idle()
 
 if __name__ == '__main__':
     main() 
