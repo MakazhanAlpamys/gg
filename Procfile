@@ -1,1 +1,0 @@
-web: python ping.py & python bot.py
